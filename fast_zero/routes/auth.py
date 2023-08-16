@@ -8,7 +8,11 @@ from sqlalchemy.orm import Session
 from fast_zero.database import get_session
 from fast_zero.models import User
 from fast_zero.schemas import Token
-from fast_zero.security import create_access_token, verify_password
+from fast_zero.security import (
+    create_access_token,
+    get_current_user,
+    verify_password,
+)
 
 router = APIRouter(tags=['token'])
 Session = Annotated[Session, Depends(get_session)]
@@ -19,7 +23,6 @@ def login_for_access_token(
     session: Session,
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
-
     user = session.scalar(select(User).where(User.email == form_data.username))
 
     if not user:
@@ -29,9 +32,16 @@ def login_for_access_token(
 
     if not verify_password(form_data.password, user.password):
         raise HTTPException(
-            status_code=400, detail='Incorret email or password'
+            status_code=400, detail='Incorrect email or password'
         )
 
     access_token = create_access_token(data={'sub': user.email})
 
     return {'access_token': access_token, 'token_type': 'bearer'}
+
+
+@router.post('/refresh_token', response_model=Token)
+def refresh_access_token(user: Annotated[User, Depends(get_current_user)]):
+    new_access_token = create_access_token(data={'sub': user.email})
+
+    return {'access_token': new_access_token, 'token_type': 'bearer'}

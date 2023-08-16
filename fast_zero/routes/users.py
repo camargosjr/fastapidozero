@@ -55,6 +55,11 @@ def update_user(
     if current_user.id != user_id:
         raise HTTPException(status_code=400, detail='Not enough permissions')
 
+    # db_user = session.scalar(select(User).where(User.id == user.id))
+
+    # if db_user is None:
+    #     raise HTTPException(status_code=400, detail='User not found')
+
     current_user.username = user.username
     current_user.password = user.password
     current_user.email = user.email
